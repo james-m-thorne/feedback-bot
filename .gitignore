@@ -1,3 +1,11 @@
 venv/
+src/__pychache__/
 .idea/
 .env
+
+terraform/secrets.auto.tfvars
+terraform/builds/
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
