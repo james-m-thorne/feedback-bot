@@ -17,7 +17,7 @@ QUESTIONS = [
 
 def lambda_handler(event, _):
     print(f'Starting team feedback with event {event}')
-    team_name = event['name']['S']
+    team_name = event['team']['S']
 
     slack_client = WebClient(token=os.environ.get('SLACK_BOT_TOKEN'))
     dynamodb = boto3.resource('dynamodb')
