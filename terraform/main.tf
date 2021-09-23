@@ -6,9 +6,15 @@ terraform {
     }
   }
 
+//  backend "s3" {
+//    bucket = "xero-process-support-640077214053-ap-southeast-2"
+//    key    = "xero-sre/terraform-state/feedback-bot/terraform.tfstate"
+//    region = "ap-southeast-2"
+//  }
   backend "s3" {
-    bucket = "xero-process-support-640077214053-ap-southeast-2"
-    key    = "xero-sre/terraform-state/feedback-bot/terraform.tfstate"
+    bucket = "james-thorne-terraform"
+    key    = "feedback-bot/terraform.tfstate"
+    region = "us-east-1"
   }
 }
 
