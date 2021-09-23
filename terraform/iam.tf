@@ -2,9 +2,8 @@
 resource "aws_iam_role" "feedback-role" {
   name   = "feedback-bot-role"
   assume_role_policy  = file("trustPolicy.json")
-  tags = {
-    "managed:ownership:team" = "sre-cobra-kai"
-  }
+  tags = var.tags
+
   inline_policy {
     name    = "feedback-bot-inline-policy"
     policy  = <<POLICY

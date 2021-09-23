@@ -37,9 +37,7 @@ module "feedback_lambda" {
     SLACK_BOT_TOKEN = var.slack_token
   }
 
-  tags = {
-    Name = "my-lambda1"
-  }
+  tags = var.tags
 }
 
 module "cron_lambda" {
@@ -109,7 +107,5 @@ module "cron_lambda" {
 }
   POLICY
 
-  tags = {
-    Name = "my-lambda2"
-  }
+  tags = var.tags
 }

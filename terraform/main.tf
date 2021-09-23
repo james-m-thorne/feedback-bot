@@ -10,4 +10,8 @@ terraform {
 # Configure the AWS Provider
 provider "aws" {
   region = "ap-southeast-2"
+
+  ignore_tags {
+    key_prefixes = ["managed:"]
+  }
 }

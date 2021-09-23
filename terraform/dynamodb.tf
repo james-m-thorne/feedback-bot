@@ -17,8 +17,5 @@ resource "aws_dynamodb_table" "feedback" {
     type = "S"
   }
 
-  tags = {
-    Name        = "test"
-    Environment = "production"
-  }
+  tags = var.tags
 }

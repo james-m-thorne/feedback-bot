@@ -2,6 +2,7 @@ venv/
 src/__pycache__/
 .idea/
 .env
+.DS_Store
 
 terraform/secrets.auto.tfvars
 terraform/builds/
