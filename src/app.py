@@ -1,15 +1,14 @@
 import os
 import json
-from dotenv import load_dotenv, find_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
+from database import Database
 from helpers import create_feedback_blocks
-
-load_dotenv(find_dotenv())
 
 # Initializes your app with your bot token and socket mode handler
 app = App(token=os.environ.get('SLACK_BOT_TOKEN'))
+db = Database()
 
 
 @app.command('/setup_feedback_loop')
@@ -26,9 +25,18 @@ def setup_feedback(ack, body, client):
             "submit": {"type": "plain_text", "text": "Submit"},
             "blocks": [
                 {
+                    "type": "input",
+                    "block_id": "team_block",
+                    "label": {"type": "plain_text", "text": "Enter your team name."},
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "team_input"
+                    }
+                },
+                {
                     "type": "section",
                     "block_id": "multi_users_select_section",
-                    "text": {"type": "mrkdwn", "text": "*Who is in the loop?*"},
+                    "text": {"type": "plain_text", "text": "Who is in the team?"},
                     "accessory": {
                         "action_id": "setup_users",
                         "type": "multi_users_select",
@@ -40,11 +48,24 @@ def setup_feedback(ack, body, client):
                 },
                 {
                     "type": "input",
-                    "block_id": "time_c",
+                    "block_id": "frequency_block",
                     "label": {"type": "plain_text", "text": "How often do you want this to occur?"},
                     "element": {
                         "type": "plain_text_input",
-                        "action_id": "time_input"
+                        "action_id": "frequency_input"
+                    }
+                },
+                {
+                    "type": "section",
+                    "block_id": "master_channel_section",
+                    "text": {"type": "plain_text", "text": "Pick channels to send all feedback to"},
+                    "accessory": {
+                        "action_id": "master_channels_select",
+                        "type": "multi_channels_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select channels"
+                        }
                     }
                 }
             ]
@@ -52,6 +73,29 @@ def setup_feedback(ack, body, client):
     )
 
 
+@app.view('feedback_setup_view')
+def setup_feedback_view(ack, view):
+    team_name = view["state"]["values"]["team_block"]["team_input"]["value"]
+    team = {
+        'team': team_name,
+        'sk': 'team',
+        'members': view["state"]["values"]["multi_users_select_section"]["setup_users"]["selected_users"],
+        'master_channels': view["state"]["values"]["master_channel_section"]["master_channels_select"]["selected_channels"],
+        'frequency': view["state"]["values"]["frequency_block"]["frequency_input"]["value"],
+        'feedback_count': 0,
+    }
+    db.put_item(team)
+
+    for member in team['members']:
+        db.put_item({
+            'team': team_name,
+            'sk': 'user#' + member,
+            'completed_feedback': False
+        })
+    ack()
+
+
+@app.action("master_channels_select")
 @app.action("setup_users")
 @app.action("user")
 def handle_user_select(ack):
