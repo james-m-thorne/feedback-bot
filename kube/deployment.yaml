@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "feedback-bot-deployment"
+  labels:
+    app: "feedback-bot-deployment"
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: "feedback-bot-deployment"
+  template:
+    metadata:
+      labels:
+        app: "feedback-bot-deployment"
+    spec:
+      serviceAccountName: "feedback-bot-sa"
+      containers:
+      - name: "feedback-bot-deployment"
+        image: "sre/feedback-bot:latest"
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        env:
+          - name: SLACK_BOT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: "feedback-bot-secrets"
+                key: SLACK_BOT_TOKEN
+          - name: SLACK_APP_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: "feedback-bot-secrets"
+                key: SLACK_APP_TOKEN

@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::640077214053:oidc-provider/oidc.eks.ap-southeast-2.amazonaws.com/id/F311673A4CDF12830512106051FB2A17"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.ap-southeast-2.amazonaws.com/id/F311673A4CDF12830512106051FB2A17:sub": "system:serviceaccount:lighthouse:feedback-bot-sa"
+        }
+      }
+    }
+  ]
+}

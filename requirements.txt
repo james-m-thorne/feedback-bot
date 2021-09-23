@@ -1,4 +1,12 @@
-slack_bolt
-boto3
-python-dotenv
-pycron
+boto3==1.18.46
+botocore==1.21.46
+greenlet==1.1.1
+jmespath==0.10.0
+pycron==3.0.0
+python-dateutil==2.8.2
+s3transfer==0.5.0
+six==1.16.0
+slack-bolt==1.9.1
+slack-sdk==3.11.2
+tinydb==4.5.1
+urllib3==1.26.7
