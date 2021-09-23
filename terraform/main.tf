@@ -5,6 +5,11 @@ terraform {
       version = "~> 3.0"
     }
   }
+
+  backend "s3" {
+    bucket = "xero-process-support-640077214053-ap-southeast-2"
+    key    = "xero-sre/terraform-state/feedback-bot/terraform.tfstate"
+  }
 }
 
 # Configure the AWS Provider
