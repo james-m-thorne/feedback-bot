@@ -20,7 +20,7 @@ spec:
       serviceAccountName: "feedback-bot-sa"
       containers:
       - name: "feedback-bot-deployment"
-        image: "sre/feedback-bot:latest"
+        image: "640077214053.dkr.ecr.ap-southeast-2.amazonaws.com/sre/feedback-bot:latest"
         imagePullPolicy: Always
         resources:
           requests:

@@ -12,9 +12,10 @@ terraform {
 //    region = "ap-southeast-2"
 //  }
   backend "s3" {
-    bucket = "james-thorne-terraform"
-    key    = "feedback-bot/terraform.tfstate"
-    region = "us-east-1"
+    bucket  = "james-thorne-terraform"
+    key     = "feedback-bot/terraform.tfstate"
+    region  = "us-east-1"
+    profile = "personal"
   }
 }
 

@@ -12,8 +12,8 @@ db = Database()
 
 
 @app.command('/setup_feedback_loop')
-@app.shortcut("setup_feedback_loop")
 def setup_feedback(ack, body, client):
+    print(f'Setting up feedback loop with body: {body}')
     ack()
     client.views_open(
         trigger_id=body["trigger_id"],
@@ -75,6 +75,7 @@ def setup_feedback(ack, body, client):
 
 @app.view('feedback_setup_view')
 def setup_feedback_view(ack, view):
+    print(f'Creating feedback loop in DynamoDB with values: {view["state"]["values"]}')
     team_name = view["state"]["values"]["team_block"]["team_input"]["value"]
     team = {
         'team': team_name,
@@ -104,6 +105,7 @@ def handle_user_select(ack):
 
 @app.action('open_feedback')
 def open_feedback(ack, body, client):
+    print(f'Opening feedback form with body: {body}')
     ack()
     values = json.loads(body['actions'][0]['value'])
     client.views_open(
@@ -137,6 +139,7 @@ def open_feedback(ack, body, client):
 
 @app.view('feedback_view')
 def handle_feedback(ack, body, client, view):
+    print(f'Sending feedback with values: {view["state"]["values"]}')
     ack()
     values = json.loads(view["private_metadata"])
 
@@ -165,8 +168,8 @@ def handle_feedback(ack, body, client, view):
 
 
 @app.command("/send_feedback")
-@app.shortcut("send_feedback")
 def open_feedback_manual(ack, body, client):
+    print(f'Opening manual feedback form with body: {body}')
     ack()
     client.views_open(
         trigger_id=body["trigger_id"],
@@ -206,6 +209,7 @@ def open_feedback_manual(ack, body, client):
 
 @app.view('feedback_view_manual')
 def handle_feedback_manual(ack, body, client, view):
+    print(f'Sending manual feedback with values: {view["state"]["values"]}')
     ack()
 
     user_id = body["user"]["id"]
@@ -226,4 +230,5 @@ def handle_feedback_manual(ack, body, client, view):
 
 # Start your app
 if __name__ == "__main__":
+    print("Starting Slack Bolt App!")
     SocketModeHandler(app, os.environ.get('SLACK_APP_TOKEN')).start()

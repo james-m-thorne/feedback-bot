@@ -3,7 +3,7 @@ import boto3
 
 class Database:
     def __init__(self):
-        self.dynamodb = boto3.resource('dynamodb')
+        self.dynamodb = boto3.resource('dynamodb', region_name='ap-southeast-2')
         self.teams_table = self.dynamodb.Table('feedback')
 
     def get_team(self, team_name):
