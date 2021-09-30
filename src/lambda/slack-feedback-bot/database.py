@@ -7,7 +7,7 @@ class Database:
         self.teams_table = self.dynamodb.Table('feedback')
 
     def get_team(self, team_name):
-        return self.teams_table.get_item(Key={'name': team_name, 'sk': 'team'})
+        return self.teams_table.get_item(Key={'team': team_name, 'sk': 'team'})
 
     def put_item(self, item):
         return self.teams_table.put_item(Item=item)

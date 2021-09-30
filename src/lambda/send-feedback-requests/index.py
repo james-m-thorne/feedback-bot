@@ -23,7 +23,7 @@ def lambda_handler(event, _):
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table('feedback')
 
-    get_response = table.get_item(Key={'name': team_name})
+    get_response = table.get_item(Key={'team': team_name, 'sk': 'team'})
     team = get_response['Item']
     print(f'Sending messages for team {team}')
 
@@ -53,7 +53,7 @@ def lambda_handler(event, _):
                             "style": "primary",
                             "value": json.dumps(
                                 {
-                                    'name': team['name'], 'from_user_id': members[i],
+                                    'team': team['team'], 'from_user_id': members[i],
                                     'question':random.choice(QUESTIONS), 'master_channels': team['master_channels']
                                 }
                             )
@@ -64,7 +64,7 @@ def lambda_handler(event, _):
         )
 
     table.update_item(
-        Key={'name': team_name},
+        Key={'team': team_name, 'sk': 'team'},
         ExpressionAttributeValues={':value': feedback_count + 1},
         UpdateExpression=f'SET feedback_count = :value'
     )

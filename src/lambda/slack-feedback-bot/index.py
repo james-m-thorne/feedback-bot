@@ -1,13 +1,12 @@
-import os
 import json
 from slack_bolt import App
-from slack_bolt.adapter.socket_mode import SocketModeHandler
+from slack_bolt.adapter.aws_lambda import SlackRequestHandler
 
 from database import Database
 from helpers import create_feedback_blocks
 
 # Initializes your app with your bot token and socket mode handler
-app = App(token=os.environ.get('SLACK_BOT_TOKEN'))
+app = App(process_before_response=True)
 db = Database()
 
 
@@ -228,7 +227,5 @@ def handle_feedback_manual(ack, body, client, view):
     )
 
 
-# Start your app
-if __name__ == "__main__":
-    print("Starting Slack Bolt App!")
-    SocketModeHandler(app, os.environ.get('SLACK_APP_TOKEN')).start()
+def lambda_handler(event, context):
+    return SlackRequestHandler(app=app).handle(event, context)

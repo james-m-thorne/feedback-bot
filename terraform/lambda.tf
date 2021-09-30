@@ -34,7 +34,7 @@ module "feedback_lambda" {
   POLICY
 
   environment_variables = {
-    SLACK_BOT_TOKEN = var.slack_token
+    SLACK_BOT_TOKEN = var.slack_bot_token
   }
 
   tags = var.tags
@@ -106,6 +106,49 @@ module "cron_lambda" {
   ]
 }
   POLICY
+
+  tags = var.tags
+}
+
+module "slack_lambda" {
+  source = "terraform-aws-modules/lambda/aws"
+
+  function_name = "slack-feedback-bot"
+  description   = "Slack feedback bot handler"
+  handler       = "index.lambda_handler"
+  runtime       = "python3.8"
+  publish       = true
+
+  source_path = [
+    {
+      path = "../src/lambda/slack-feedback-bot",
+      pip_requirements = true
+    }
+  ]
+
+  attach_policy_json     = true
+  policy_json            = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Stmt1631835181523",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:Scan"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_dynamodb_table.feedback.arn}"
+    }
+  ]
+}
+  POLICY
+
+  environment_variables = {
+    SLACK_BOT_TOKEN = var.slack_bot_token
+    SLACK_SIGNING_SECRET = var.slack_signing_secret
+  }
 
   tags = var.tags
 }
