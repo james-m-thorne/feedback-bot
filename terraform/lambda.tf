@@ -126,6 +126,13 @@ module "slack_lambda" {
     }
   ]
 
+  allowed_triggers = {
+    APIGateway = {
+      principal    = "apigateway.amazonaws.com"
+      source_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.api.id}/prod/POST/slack-feedback-bot"
+    }
+  }
+
   attach_policy_json     = true
   policy_json            = <<POLICY
 {

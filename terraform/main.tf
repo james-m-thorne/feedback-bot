@@ -28,3 +28,6 @@ provider "aws" {
     key_prefixes = ["managed:"]
   }
 }
+
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
