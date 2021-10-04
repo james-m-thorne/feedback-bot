@@ -6,12 +6,6 @@ terraform {
     }
   }
 
-#  backend "s3" {
-#    bucket = "xero-process-support-640077214053-ap-southeast-2"
-#    key    = "xero-sre/terraform-state/feedback-bot/terraform.tfstate"
-#    region = "ap-southeast-2"
-#    profile = "default"
-#  }
   backend "s3" {
     bucket  = "james-thorne-terraform"
     key     = "feedback-bot/terraform.tfstate"
