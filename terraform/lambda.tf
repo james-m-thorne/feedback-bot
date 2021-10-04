@@ -40,6 +40,53 @@ module "feedback_lambda" {
   tags = var.tags
 }
 
+module "reminder_lambda" {
+  source = "terraform-aws-modules/lambda/aws"
+
+  function_name = "send-feedback-reminders"
+  description   = "Send slack feedback reminder"
+  handler       = "index.lambda_handler"
+  runtime       = "python3.8"
+  publish       = true
+
+  source_path = [
+    {
+      path = "../src/lambda/send-feedback-reminders",
+      pip_requirements = true
+    }
+  ]
+
+  allowed_triggers = {
+    ReminderRule = {
+      principal  = "events.amazonaws.com"
+      source_arn = aws_cloudwatch_event_rule.reminder_rule.arn
+    }
+  }
+
+  attach_policy_json = true
+  policy_json = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Stmt1631835181523",
+      "Action": [
+        "dynamodb:Scan"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_dynamodb_table.feedback.arn}"
+    }
+  ]
+}
+  POLICY
+
+  environment_variables = {
+    SLACK_BOT_TOKEN = var.slack_bot_token
+  }
+
+  tags = var.tags
+}
+
 module "cron_lambda" {
   source = "terraform-aws-modules/lambda/aws"
 
@@ -142,7 +189,9 @@ module "slack_lambda" {
       "Sid": "Stmt1631835181523",
       "Action": [
         "dynamodb:GetItem",
+        "dynamodb:DeleteItem",
         "dynamodb:PutItem",
+        "dynamodb:Query",
         "dynamodb:Scan"
       ],
       "Effect": "Allow",

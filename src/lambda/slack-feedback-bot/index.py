@@ -51,7 +51,8 @@ def setup_feedback(ack, body, client):
                     "label": {"type": "plain_text", "text": "How often do you want this to occur?"},
                     "element": {
                         "type": "plain_text_input",
-                        "action_id": "frequency_input"
+                        "action_id": "frequency_input",
+                        "placeholder": {"type": "plain_text", "text": "AWS Cron Expression. I.e. 0 20 ? * MON * "}
                     }
                 },
                 {
@@ -60,7 +61,7 @@ def setup_feedback(ack, body, client):
                     "text": {"type": "plain_text", "text": "Pick channels to send all feedback to"},
                     "accessory": {
                         "action_id": "master_channels_select",
-                        "type": "multi_channels_select",
+                        "type": "multi_conversations_select",
                         "placeholder": {
                             "type": "plain_text",
                             "text": "Select channels"
@@ -73,14 +74,15 @@ def setup_feedback(ack, body, client):
 
 
 @app.view('feedback_setup_view')
-def setup_feedback_view(ack, view):
+def setup_feedback_view(ack, view, client):
+    ack()
     print(f'Creating feedback loop in DynamoDB with values: {view["state"]["values"]}')
     team_name = view["state"]["values"]["team_block"]["team_input"]["value"]
     team = {
         'team': team_name,
         'sk': 'team',
         'members': view["state"]["values"]["multi_users_select_section"]["setup_users"]["selected_users"],
-        'master_channels': view["state"]["values"]["master_channel_section"]["master_channels_select"]["selected_channels"],
+        'master_channels': view["state"]["values"]["master_channel_section"]["master_channels_select"]["selected_conversations"],
         'frequency': view["state"]["values"]["frequency_block"]["frequency_input"]["value"],
         'feedback_count': 0,
     }
@@ -92,10 +94,73 @@ def setup_feedback_view(ack, view):
             'sk': 'user#' + member,
             'completed_feedback': False
         })
+        client.chat_postMessage(
+            channel=member,
+            text=f"You have been added to the feedback loop for {team_name}. You will now receive feedback requests to"
+                 f" fill out for your teammates.",
+        )
+
+
+@app.command('/delete_feedback_loop')
+def delete_feedback(ack, body, client):
+    print(f'Deleting feedback loop with body: {body}')
+    teams = db.get_all_teams()
+    team_options = [{
+        "text": {"type": "plain_text", "text": team['team']},
+        "value": team['team']
+    } for team in teams['Items']]
+
     ack()
+    if team_options:
+        client.views_open(
+            trigger_id=body["trigger_id"],
+            view={
+                "type": "modal",
+                "callback_id": "feedback_delete_view",
+                "title": {"type": "plain_text", "text": "Delete a feedback loop"},
+                "submit": {"type": "plain_text", "text": "Submit"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "block_id": "delete_team_block",
+                        "text": {"type": "plain_text", "text": "Pick a team to delete"},
+                        "accessory": {
+                            "action_id": "delete_team_select",
+                            "type": "static_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Select a team"
+                            },
+                            "options": team_options
+                        }
+                    }
+                ]
+            }
+        )
+    else:
+        client.chat_postEphemeral(
+            channel=body['channel_id'],
+            user=body['user_id'],
+            text='No teams to delete.'
+        )
+
+
+@app.view('feedback_delete_view')
+def delete_feedback_view(ack, view):
+    ack()
+    print(f'Deleting feedback loop in DynamoDB with values: {view["state"]["values"]}')
+    team_name = view["state"]["values"]["delete_team_block"]["delete_team_select"]["selected_option"]["value"]
+    team = db.get_team(team_name)
+    for member in team['Item']['members']:
+        db.delete_item({
+            'team': team_name,
+            'sk': 'user#' + member
+        })
+    db.delete_item({'team': team_name, 'sk': 'team'})
 
 
 @app.action("master_channels_select")
+@app.action("delete_team_select")
 @app.action("setup_users")
 @app.action("user")
 def handle_user_select(ack):
@@ -164,6 +229,12 @@ def handle_feedback(ack, body, client, view):
             text=f"Feedback from <@{user_id}> to <@{selected_user_id}>",
             blocks=create_feedback_blocks(f'Feedback from <@{user_id}> to <@{selected_user_id}>', question, text)
         )
+
+    db.put_item({
+        'team': values['team'],
+        'sk': f'user#{user_id}',
+        'completed_feedback': True
+    })
 
 
 @app.command("/send_feedback")

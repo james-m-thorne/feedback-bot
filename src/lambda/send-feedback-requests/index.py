@@ -32,12 +32,13 @@ def lambda_handler(event, _):
     offset = feedback_count % (len(members) - 1)
     feedback_members = members[(offset + 1):] + members[:(offset + 1)]
     for i in range(len(members)):
+        user_id = members[i]
         slack_client.chat_postMessage(
             channel=feedback_members[i],
-            text=f"Feedback request from <@{members[i]}>",
+            text=f"Feedback request from <@{user_id}>",
             blocks=[
                 {
-                    "type": "section", "text": {"type": "mrkdwn", "text": f"Feedback request from <@{members[i]}>"}
+                    "type": "section", "text": {"type": "mrkdwn", "text": f"Feedback request from <@{user_id}>"}
                 },
                 {
                     "type": "actions",
@@ -53,7 +54,7 @@ def lambda_handler(event, _):
                             "style": "primary",
                             "value": json.dumps(
                                 {
-                                    'team': team['team'], 'from_user_id': members[i],
+                                    'team': team['team'], 'from_user_id': user_id,
                                     'question':random.choice(QUESTIONS), 'master_channels': team['master_channels']
                                 }
                             )
@@ -61,6 +62,11 @@ def lambda_handler(event, _):
                     ]
                 }
             ]
+        )
+        table.update_item(
+            Key={'team': team_name, 'sk': f'user#{user_id}'},
+            ExpressionAttributeValues={':value': False},
+            UpdateExpression=f'SET completed_feedback = :value'
         )
 
     table.update_item(

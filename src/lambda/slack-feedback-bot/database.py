@@ -12,5 +12,12 @@ class Database:
     def put_item(self, item):
         return self.teams_table.put_item(Item=item)
 
-    def get_all(self):
-        return self.teams_table.scan()
+    def delete_item(self, key):
+        return self.teams_table.delete_item(Key=key)
+
+    def get_all_teams(self):
+        return self.teams_table.scan(
+            FilterExpression="#sk = :team",
+            ExpressionAttributeNames={"#sk": 'sk'},
+            ExpressionAttributeValues={":team": 'team'}
+        )
