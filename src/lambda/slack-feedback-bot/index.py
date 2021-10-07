@@ -96,7 +96,7 @@ def setup_feedback_view(ack, view, client):
         })
         client.chat_postMessage(
             channel=member,
-            text=f"You have been added to the feedback loop for {team_name}. You will now receive feedback requests to"
+            text=f"You have been added to the feedback loop for *{team_name}*. You will now receive feedback requests to"
                  f" fill out for your teammates.",
         )
 
@@ -146,7 +146,7 @@ def delete_feedback(ack, body, client):
 
 
 @app.view('feedback_delete_view')
-def delete_feedback_view(ack, view):
+def delete_feedback_view(ack, view, client):
     ack()
     print(f'Deleting feedback loop in DynamoDB with values: {view["state"]["values"]}')
     team_name = view["state"]["values"]["delete_team_block"]["delete_team_select"]["selected_option"]["value"]
@@ -156,6 +156,10 @@ def delete_feedback_view(ack, view):
             'team': team_name,
             'sk': 'user#' + member
         })
+        client.chat_postMessage(
+            channel=member,
+            text=f"The feedback loop for *{team_name}* has been deleted.",
+        )
     db.delete_item({'team': team_name, 'sk': 'team'})
 
 
