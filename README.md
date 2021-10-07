@@ -12,4 +12,4 @@ terraform apply
 
 #### Note: 
 
-* Requires terraform secrets for Slack Bot and App tokens
+* Requires terraform secrets for Slack bot token and signing secret
