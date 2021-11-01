@@ -7,6 +7,7 @@ module "feedback_lambda" {
   handler       = "index.lambda_handler"
   runtime       = "python3.8"
   publish       = true
+  timeout       = 60
 
   source_path = [
     {
@@ -48,6 +49,7 @@ module "reminder_lambda" {
   handler       = "index.lambda_handler"
   runtime       = "python3.8"
   publish       = true
+  timeout       = 60
 
   source_path = [
     {
@@ -95,6 +97,7 @@ module "cron_lambda" {
   handler       = "index.lambda_handler"
   runtime       = "python3.8"
   publish       = true
+  timeout       = 60
 
   source_path = "../src/lambda/update-eventbridge"
 
@@ -165,6 +168,7 @@ module "slack_lambda" {
   handler       = "index.lambda_handler"
   runtime       = "python3.8"
   publish       = true
+  timeout       = 10
 
   source_path = [
     {

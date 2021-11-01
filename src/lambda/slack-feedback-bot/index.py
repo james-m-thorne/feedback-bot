@@ -92,7 +92,7 @@ def setup_feedback_view(ack, view, client):
         db.put_item({
             'team': team_name,
             'sk': 'user#' + member,
-            'completed_feedback': False
+            'completed_feedback': True
         })
         client.chat_postMessage(
             channel=member,
