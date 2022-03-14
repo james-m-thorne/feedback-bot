@@ -10,6 +10,71 @@ app = App(process_before_response=True)
 db = Database()
 
 
+@app.command('/feedback_loop')
+def feedback(ack, body, client):
+    print(f'Feedback loop with body: {body}')
+    ack()
+    user_id = body["user_id"]
+    channel_id = body["channel_id"]
+
+    print(f'Sending feedback loop options for {user_id} in {channel_id}')
+    client.chat_postEphemeral(
+        channel=channel_id,
+        user=user_id,
+        text=f"Manage Feedback Loops",
+        blocks=[
+            {
+                "type": "section", "text": {"type": "mrkdwn", "text": f":gear: *Manage Feedback Loops*"},
+            },
+            {
+                "type": "actions",
+                "block_id": "setup_button",
+                "elements": [
+                    {
+                        "type": "button",
+                        "action_id": "setup_feedback_loop",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Create Feedback Loop",
+                        },
+                        "style": "primary",
+                    }
+                ]
+            },
+            {
+                "type": "actions",
+                "block_id": "edit_button",
+                "elements": [
+                    {
+                        "type": "button",
+                        "action_id": "edit_feedback_loop",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Edit Feedback Loop",
+                        },
+                    }
+                ]
+            },
+            {
+                "type": "actions",
+                "block_id": "delete_button",
+                "elements": [
+                    {
+                        "type": "button",
+                        "action_id": "delete_feedback_loop",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Delete Feedback Loop",
+                        },
+                        "style": "danger",
+                    }
+                ]
+            }
+        ]
+    )
+
+
+@app.action('setup_feedback_loop')
 @app.command('/setup_feedback_loop')
 def setup_feedback(ack, body, client):
     print(f'Setting up feedback loop with body: {body}')
@@ -86,21 +151,177 @@ def setup_feedback_view(ack, view, client):
         'frequency': view["state"]["values"]["frequency_block"]["frequency_input"]["value"],
         'feedback_count': 0,
     }
-    db.put_item(team)
+    upsert_team(client, team)
 
-    for member in team['members']:
-        db.put_item({
-            'team': team_name,
-            'sk': 'user#' + member,
-            'completed_feedback': True
-        })
-        client.chat_postMessage(
-            channel=member,
-            text=f"You have been added to the feedback loop for *{team_name}*. You will now receive feedback requests to"
-                 f" fill out for your teammates.",
+
+def upsert_team(client, team):
+    updated_members = db.get_updated_team_members(team)
+    print(f'Updating team {team} with members {updated_members}')
+    db.put_item(team)
+    for member in updated_members:
+        if member['type'] in ('new', 'existing'):
+            db.put_item({
+                'team': team['team'],
+                'sk': 'user#' + member['id'],
+                'completed_feedback': True
+            })
+        else:
+            db.delete_item({
+                'team': team['team'],
+                'sk': 'user#' + member['id']
+            })
+
+        if member['type'] == 'new':
+            client.chat_postMessage(
+                channel=member['id'],
+                text=f"You have been added to the feedback loop for *{team['team']}*. You will now receive feedback requests to"
+                     f" fill out for your teammates.",
+            )
+        elif member['type'] == 'existing':
+            client.chat_postMessage(
+                channel=member['id'],
+                text=f"The feedback loop for *{team['team']}* has been updated."
+            )
+        else:
+            client.chat_postMessage(
+                channel=member['id'],
+                text=f"You have been removed from the feedback loop for *{team['team']}*"
+            )
+
+
+@app.action('edit_feedback_loop')
+def edit_feedback(ack, body, client):
+    print(f'Editing feedback loop with body: {body}')
+    teams = db.get_all_teams()
+    team_options = [{
+        "text": {"type": "plain_text", "text": team['team']},
+        "value": team['team']
+    } for team in teams['Items']]
+
+    ack()
+    if team_options:
+        client.views_open(
+            trigger_id=body["trigger_id"],
+            view={
+                "type": "modal",
+                "callback_id": "feedback_setup_view",
+                "title": {"type": "plain_text", "text": "Edit a feedback loop"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "block_id": "delete_team_block",
+                        "text": {"type": "plain_text", "text": "Pick a team to edit"},
+                        "accessory": {
+                            "action_id": "edit_team_select",
+                            "type": "static_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Select a team"
+                            },
+                            "options": team_options
+                        }
+                    }
+                ]
+            }
+        )
+    else:
+        client.chat_postEphemeral(
+            channel=body['channel_id'],
+            user=body['user_id'],
+            text='No teams to delete.'
         )
 
 
+@app.action('edit_team_select')
+def edit_team_select(ack, body, client):
+    ack()
+    print(f'Editing team with body: {body}')
+    selected_team_name = body['actions'][0]['selected_option']['value']
+    team = db.get_team(selected_team_name)['Item']
+    options = body["view"]["blocks"][0]["accessory"]["options"]
+    print(f'Updating view with team: {team}')
+    client.views_update(
+        # Pass the view_id
+        view_id=body["view"]["id"],
+        # String that represents view state to protect against race conditions
+        hash=body["view"]["hash"],
+        # View payload with updated blocks
+        view={
+            "type": "modal",
+            # View identifier
+            "callback_id": "feedback_edit_view",
+            "title": {"type": "plain_text", "text": f"Edit a feedback loop"},
+            "submit": {"type": "plain_text", "text": "Submit"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "block_id": "delete_team_block",
+                    "fields": [
+                        {"type": "mrkdwn", "text": "*Selected team:*"},
+                        {"type": "plain_text", "text": selected_team_name}
+                    ]
+                },
+                {
+                    "type": "section",
+                    "block_id": "multi_users_select_section",
+                    "text": {"type": "plain_text", "text": "Who is in the team?"},
+                    "accessory": {
+                        "action_id": "setup_users",
+                        "type": "multi_users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select users"
+                        },
+                        "initial_users": team['members']
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "frequency_block",
+                    "label": {"type": "plain_text", "text": "How often do you want this to occur?"},
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "frequency_input",
+                        "placeholder": {"type": "plain_text", "text": "AWS Cron Expression. I.e. 0 20 ? * MON * "},
+                        "initial_value": team['frequency']
+                    }
+                },
+                {
+                    "type": "section",
+                    "block_id": "master_channel_section",
+                    "text": {"type": "plain_text", "text": "Pick channels to send all feedback to"},
+                    "accessory": {
+                        "action_id": "master_channels_select",
+                        "type": "multi_conversations_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select channels"
+                        },
+                        "initial_conversations": team['master_channels']
+                    }
+                }
+            ]
+        }
+    )
+
+
+@app.view('feedback_edit_view')
+def edit_feedback_view(ack, view, client):
+    ack()
+    print(f'Editing feedback loop in DynamoDB with values: {view}')
+    team_name = view["blocks"][0]["fields"][1]["text"]
+    team = {
+        'team': team_name,
+        'sk': 'team',
+        'members': view["state"]["values"]["multi_users_select_section"]["setup_users"]["selected_users"],
+        'master_channels': view["state"]["values"]["master_channel_section"]["master_channels_select"]["selected_conversations"],
+        'frequency': view["state"]["values"]["frequency_block"]["frequency_input"]["value"],
+        'feedback_count': 0,
+    }
+    upsert_team(client, team)
+
+
+@app.action('delete_feedback_loop')
 @app.command('/delete_feedback_loop')
 def delete_feedback(ack, body, client):
     print(f'Deleting feedback loop with body: {body}')

@@ -1,4 +1,5 @@
 import boto3
+from boto3.dynamodb.conditions import Key
 
 
 class Database:
@@ -8,6 +9,21 @@ class Database:
 
     def get_team(self, team_name):
         return self.teams_table.get_item(Key={'team': team_name, 'sk': 'team'})
+
+    def get_updated_team_members(self, team):
+        current_team = self.get_team(team['team'])
+        current_members = set(current_team['Item']['members'])
+        new_members = team['members']
+        members = []
+        for member in new_members:
+            if member not in current_members:
+                members.append({'id': member, 'type': 'new'})
+            else:
+                members.append({'id': member, 'type': 'existing'})
+                current_members.remove(member)
+        for deleted_member in current_members:
+            members.append({'id': deleted_member, 'type': 'deleted'})
+        return members
 
     def put_item(self, item):
         return self.teams_table.put_item(Item=item)
